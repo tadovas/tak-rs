@@ -6,3 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow="1.0.75"
+tokio = { version = "1.35.0", features = ["macros", "rt-multi-thread", "net" , "io-util" , "fs"] }
+tokio-rustls = "0.25.0"
+rustls-pemfile = "2.0.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
