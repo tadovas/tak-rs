@@ -2,7 +2,7 @@ use anyhow::Context;
 use rustls_pemfile::Item;
 use std::path::Path;
 use std::sync::Arc;
-use tokio_rustls::rustls::pki_types::{CertificateDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer};
+use tokio_rustls::rustls::pki_types::{CertificateDer, PrivatePkcs1KeyDer};
 use tokio_rustls::rustls::server::WebPkiClientVerifier;
 use tokio_rustls::rustls::{RootCertStore, ServerConfig};
 
