@@ -1,0 +1,17 @@
+<event version="2.0" uid="F6FD50A3-2827-4651-AFCC-2257F36B4C96-9-1-1" type="b-a-o-opn" how="m-g"
+       time="2023-12-23T19:26:41Z" start="2023-12-23T19:26:41Z" stale="2023-12-24T01:28:41Z">
+    <point lat="11.22312140813229" lon="11.225980082519928" hae="0.0" ce="0.0" le="0.0"/>
+    <detail>
+        <contact callsign="Aaaaa.In Contact.23.212641-Alert"/>
+        <precisionlocation geopointsrc="???" altsrc="???"/>
+        <emergency type="In Contact">Aaaaa</emergency>
+        <status readiness="true" battery="0.7"/>
+        <archive/>
+        <link uid="F6FD50A3-2827-4651-AFCC-2257F36B4C96" production_time="2023-12-23T19:26:41Z" type="a-f-G-U-C"
+              parent_callsign="Aaaaa" relation="p-p"/>
+        <usericon iconsetpath="In Contact"/>
+        <color argb="-1"/>
+        <marti></marti>
+        <remarks></remarks>
+    </detail>
+</event>

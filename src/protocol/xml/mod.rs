@@ -1,3 +1,5 @@
+use minidom::Element;
+use std::str::FromStr;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
@@ -34,6 +36,10 @@ fn find_in(slice: &[u8], subslice: &[u8]) -> Option<usize> {
         .map(|(pos, _)| pos)
 }
 
+fn xml_parse(xml: &[u8]) -> minidom::Result<Element> {
+    Element::from_reader_with_prefixes(xml, Some("cot_event_namespace".to_string()))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -68,5 +74,28 @@ mod test {
         assert_eq!("<event>abc</event>", String::from_utf8_lossy(&frame4));
 
         Ok(())
+    }
+
+    macro_rules! xml_test_message {
+        ($name: literal) => {
+            ($name, include_bytes!($name).as_slice())
+        };
+    }
+    #[test]
+    fn xml_message_parser() {
+        let messages = [
+            xml_test_message!("fixtures/first_event.xml"),
+            xml_test_message!("fixtures/additional.xml"),
+            xml_test_message!("fixtures/911_alert_start.xml"),
+            xml_test_message!("fixtures/911_deactive.xml"),
+            xml_test_message!("fixtures/contact_alert.xml"),
+            xml_test_message!("fixtures/general_chat_message.xml"),
+        ];
+
+        for (name, content) in messages {
+            let res = xml_parse(content);
+            assert!(res.is_ok(), "Assertion failed for {name}, error: {res:#?}");
+            println!("{:#?}", res.unwrap())
+        }
     }
 }

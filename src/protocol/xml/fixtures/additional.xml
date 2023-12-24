@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<event version="2.0" uid="F6FD50A3-2827-4651-AFCC-2257F36B4C96" type="a-f-G-E-V-C" how="m-g" time="2023-12-23T19:24:05Z"
+       start="2023-12-23T19:24:05Z" stale="2023-12-23T19:26:05Z">
+    <point lat="11.22315966042454" lon="11.225991481255767" hae="0.00777356488825" ce="9999999.0" le="9999999.0"/>
+    <detail>
+        <contact callsign="Aaaaa" phone="" endpoint="*:-1:stcp"/>
+        <__group name="Cyan" role="Team Member"/>
+        <precisionlocation geopointsrc="GPS" altsrc="???"/>
+        <status battery="70"/>
+        <takv device="iPhone" platform="iTAK" os="17.1.2" version="2.0.0.666"/>
+        <track speed="0.0" course="92.42253875732422"/>
+        <uid Droid="Aaaaa"/>
+    </detail>
+</event>

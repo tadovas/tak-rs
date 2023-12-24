@@ -1,0 +1,18 @@
+<event version="2.0"
+       uid="GeoChat.F6FD50A3-2827-4651-AFCC-2257F36B4C96.All Chat Rooms.BCFC9C37-96B5-4748-BC23-A5FA3E1E8C95"
+       type="b-t-f" how="h-g-i-g-o" time="2023-12-23T19:25:49Z" start="2023-12-23T19:25:49Z"
+       stale="2023-12-23T19:27:49Z">
+    <point lat="33.33312596888353" lon="11.11596735810184" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
+    <detail>
+        <__chat parent="RootContactGroup" groupOwner="false" messageId="BCFC9C37-96B5-4748-BC23-A5FA3E1E8C95"
+                chatroom="All Chat Rooms" id="All Chat Rooms" senderCallsign="Aaaaa">
+            <chatgrp uid0="F6FD50A3-2827-4651-AFCC-2257F36B4C96" uid1="All Chat Rooms" id="All Chat Rooms"/>
+        </__chat>
+        <link uid="F6FD50A3-2827-4651-AFCC-2257F36B4C96" type="a-f-G-E-V-C" relation="p-p"/>
+        <remarks source="BAO.F.ATAK.F6FD50A3-2827-4651-AFCC-2257F36B4C96" to="All Chat Rooms"
+                 time="2023-12-23T19:25:49Z">Testing
+        </remarks>
+        <__serverdestination destinations="1.1.1.1:6666:tcp:F6FD50A3-2827-4651-AFCC-2257F36B4C96"/>
+        <_flow-tags_ TAK-Server-dd4055d128d5416e826423948c66e412="2023-12-23T19:25:49Z"/>
+    </detail>
+</event>

@@ -7,7 +7,7 @@ use tracing::info;
 pub async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
     let frames = FramedRead::new(
         stream,
-        protocol::PatternSplitDecoder::new(protocol::COT_LEGACY_FRAME_MARKER),
+        protocol::xml::PatternSplitDecoder::new(protocol::xml::COT_LEGACY_FRAME_MARKER),
     );
     pin_mut!(frames);
     while let Some(res) = frames.next().await {
