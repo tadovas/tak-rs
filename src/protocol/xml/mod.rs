@@ -1,4 +1,5 @@
 use minidom::Element;
+use std::io;
 use std::str::FromStr;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::Decoder;
@@ -16,7 +17,7 @@ impl<'a> PatternSplitDecoder<'a> {
 }
 impl Decoder for PatternSplitDecoder<'_> {
     type Item = Vec<u8>;
-    type Error = anyhow::Error;
+    type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         Ok(if let Some(pos) = find_in(src, self.pattern) {
