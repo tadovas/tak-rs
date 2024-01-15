@@ -15,7 +15,7 @@ fn unexpected_eof_is_none<V>(
     }
 }
 
-pub async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
+pub(super) async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
     let frames = FramedRead::new(
         stream,
         protocol::xml::PatternSplitDecoder::new(protocol::xml::COT_LEGACY_FRAME_MARKER),
@@ -34,7 +34,7 @@ pub async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::client::client_loop;
+    use super::*;
     use std::io;
     use std::io::ErrorKind;
     use std::pin::Pin;
