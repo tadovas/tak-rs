@@ -4,9 +4,9 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivatePkcs1KeyDer};
 use tokio_rustls::rustls::server::WebPkiClientVerifier;
-use tokio_rustls::rustls::{RootCertStore, ServerConfig};
+use tokio_rustls::rustls::{ClientConfig, RootCertStore, ServerConfig};
 
-pub fn setup_tls() -> anyhow::Result<ServerConfig> {
+pub fn setup_server_tls() -> anyhow::Result<ServerConfig> {
     let ca_cert: CertificateDer = read_certificate("certs/ca.crt").context("CA")?;
 
     let server_cert = read_certificate("certs/server.crt").context("Server cert")?;
@@ -24,6 +24,22 @@ pub fn setup_tls() -> anyhow::Result<ServerConfig> {
         )
         .with_single_cert(vec![server_cert], key.into())
         .context("tls config setup")
+}
+
+pub fn setup_client_tls() -> anyhow::Result<ClientConfig> {
+    let ca_cert: CertificateDer = read_certificate("certs/ca.crt").context("CA")?;
+
+    let client_cert = read_certificate("certs/server.crt").context("Server cert")?;
+
+    let key = read_private_key("certs/server.key").context("server key")?;
+
+    let mut roots = RootCertStore::empty();
+    roots.add(ca_cert).context("roots setup")?;
+
+    ClientConfig::builder()
+        .with_root_certificates(Arc::new(roots))
+        .with_client_auth_cert(vec![client_cert], key.into())
+        .context("client cert setup")
 }
 
 fn read_certificate(path: impl AsRef<Path>) -> anyhow::Result<CertificateDer<'static>> {

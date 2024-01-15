@@ -21,6 +21,7 @@ pub async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
         protocol::xml::PatternSplitDecoder::new(protocol::xml::COT_LEGACY_FRAME_MARKER),
     );
     pin_mut!(frames);
+
     while let Some(res) = unexpected_eof_is_none(frames.next().await) {
         let xml_packet = res?;
         info!("XML Packet:");
