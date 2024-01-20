@@ -16,17 +16,14 @@ fn unexpected_eof_is_none<V>(
 }
 
 pub(super) async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
-    let frames = FramedRead::new(
-        stream,
-        protocol::xml::PatternSplitDecoder::new(protocol::xml::COT_LEGACY_FRAME_MARKER),
-    );
+    let frames = FramedRead::new(stream, protocol::xml::CotCodec::new(4 * 1024));
     pin_mut!(frames);
 
-    while let Some(res) = unexpected_eof_is_none(frames.next().await) {
-        let xml_packet = res?;
-        info!("XML Packet:");
-        info!("{}", String::from_utf8_lossy(&xml_packet));
-        info!("XML END");
+    while let Some(res) = frames.next().await {
+        let message = res?;
+        info!("Message");
+        info!("{message:#?}");
+        info!("END");
     }
     info!("Disconnected");
     Ok(())

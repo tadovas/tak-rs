@@ -9,7 +9,7 @@ async fn main() -> anyhow::Result<()> {
         tls: tls::Config {
             ca: "certs/ca.crt".to_string(),
             cert: "certs/server.crt".to_string(),
-            key: "certs/key.crt".to_string(),
+            key: "certs/server.key".to_string(),
         },
     })
     .await
