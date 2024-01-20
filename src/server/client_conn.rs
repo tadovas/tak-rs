@@ -9,7 +9,7 @@ fn unexpected_eof_is_none<V>(
     res: Option<Result<V, std::io::Error>>,
 ) -> Option<Result<V, std::io::Error>> {
     match res {
-        /// because of https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof
+        // because of https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof
         Some(Err(e)) if e.kind() == ErrorKind::UnexpectedEof => None,
         res => res,
     }

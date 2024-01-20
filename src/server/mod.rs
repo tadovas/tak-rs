@@ -28,9 +28,8 @@ async fn listener_loop(listener: TcpListener, tls_acceptor: TlsAcceptor) -> anyh
 }
 
 async fn check_for_error(fut: impl Future<Output = anyhow::Result<()>>) {
-    match fut.await {
-        Err(err) => error!("Client conn error: {err:?}"),
-        _ => (),
+    if let Err(err) = fut.await {
+        error!("Client conn error: {err:?}")
     }
 }
 

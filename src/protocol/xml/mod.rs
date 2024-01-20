@@ -1,6 +1,5 @@
 use minidom::Element;
 use std::io;
-use std::str::FromStr;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
