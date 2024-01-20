@@ -2,16 +2,22 @@ use anyhow::Context;
 use rustls_pemfile::Item;
 use std::path::Path;
 use std::sync::Arc;
-use tokio_rustls::rustls::pki_types::{CertificateDer, PrivatePkcs1KeyDer};
+use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio_rustls::rustls::server::WebPkiClientVerifier;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore, ServerConfig};
 
-pub fn setup_server_tls() -> anyhow::Result<ServerConfig> {
-    let ca_cert: CertificateDer = read_certificate("certs/ca.crt").context("CA")?;
+pub struct Config {
+    pub ca: String,
+    pub cert: String,
+    pub key: String,
+}
 
-    let server_cert = read_certificate("certs/server.crt").context("Server cert")?;
+pub fn setup_server_tls(config: Config) -> anyhow::Result<ServerConfig> {
+    let ca_cert: CertificateDer = read_certificate(config.ca).context("CA")?;
 
-    let key = read_private_key("certs/server.key").context("server key")?;
+    let server_cert = read_certificate(config.cert).context("Server cert")?;
+
+    let key = read_private_key(config.key).context("server key")?;
 
     let mut roots = RootCertStore::empty();
     roots.add(ca_cert).context("roots setup")?;
@@ -26,12 +32,12 @@ pub fn setup_server_tls() -> anyhow::Result<ServerConfig> {
         .context("tls config setup")
 }
 
-pub fn setup_client_tls() -> anyhow::Result<ClientConfig> {
-    let ca_cert: CertificateDer = read_certificate("certs/ca.crt").context("CA")?;
+pub fn setup_client_tls(config: Config) -> anyhow::Result<ClientConfig> {
+    let ca_cert: CertificateDer = read_certificate(config.ca).context("CA")?;
 
-    let client_cert = read_certificate("certs/server.crt").context("Server cert")?;
+    let client_cert = read_certificate(config.cert).context("Client cert")?;
 
-    let key = read_private_key("certs/server.key").context("server key")?;
+    let key = read_private_key(config.key).context("Client key")?;
 
     let mut roots = RootCertStore::empty();
     roots.add(ca_cert).context("roots setup")?;
@@ -51,12 +57,12 @@ fn read_certificate(path: impl AsRef<Path>) -> anyhow::Result<CertificateDer<'st
     }
 }
 
-fn read_private_key(path: impl AsRef<Path>) -> anyhow::Result<PrivatePkcs1KeyDer<'static>> {
+fn read_private_key(path: impl AsRef<Path>) -> anyhow::Result<PrivateKeyDer<'static>> {
     let item = read_pem(path)?;
-    if let Item::Pkcs1Key(key) = item {
-        Ok(key)
-    } else {
-        Err(anyhow::anyhow!("unexpected item :( {:?}", item))
+    match item {
+        Item::Pkcs1Key(key) => Ok(key.into()),
+        Item::Pkcs8Key(key) => Ok(key.into()),
+        _ => Err(anyhow::anyhow!("unexpected item :( {:?}", item)),
     }
 }
 

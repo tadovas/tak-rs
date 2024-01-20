@@ -45,8 +45,8 @@ mod test {
     impl AsyncRead for UnexpectedEOFReader {
         fn poll_read(
             self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &mut ReadBuf<'_>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
         ) -> Poll<io::Result<()>> {
             Poll::Ready(Err(io::Error::new(ErrorKind::UnexpectedEof, "test error")))
         }

@@ -35,9 +35,10 @@ async fn check_for_error(fut: impl Future<Output = anyhow::Result<()>>) {
 
 pub struct Config {
     pub listen_port: u16,
+    pub tls: tls::Config,
 }
 pub async fn server_run(config: Config) -> anyhow::Result<()> {
-    let tls_config = Arc::new(tls::setup_server_tls()?);
+    let tls_config = Arc::new(tls::setup_server_tls(config.tls)?);
     let tls_acceptor = TlsAcceptor::from(tls_config);
 
     let listener = TcpListener::bind(("0.0.0.0", config.listen_port)).await?;

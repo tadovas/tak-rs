@@ -11,14 +11,23 @@ const TEST_PORT: u16 = 13000;
 async fn test_client_sends_message_to_server() -> anyhow::Result<()> {
     tak_rs::tracing::init()?;
 
-    let _server = tokio::spawn(async {
+    let _server_task = tokio::spawn(async {
         server_run(Config {
             listen_port: TEST_PORT,
+            tls: tls::Config {
+                ca: "certs/ca.crt".to_string(),
+                cert: "certs/server.crt".to_string(),
+                key: "certs/server.key".to_string(),
+            },
         })
         .await
     });
 
-    let tls_config = tls::setup_client_tls()?;
+    let tls_config = tls::setup_client_tls(tls::Config {
+        ca: "certs/ca.crt".to_string(),
+        cert: "certs/client.crt".to_string(),
+        key: "certs/client.key".to_string(),
+    })?;
     let tls_connector = TlsConnector::from(Arc::new(tls_config));
 
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -29,7 +38,7 @@ async fn test_client_sends_message_to_server() -> anyhow::Result<()> {
 
     client.write(b"<event><abc></abc></event>").await?;
     client.flush().await?;
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
     client.shutdown().await?;
     info!("we done");
     Ok(())
