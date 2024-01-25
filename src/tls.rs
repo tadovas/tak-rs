@@ -28,7 +28,7 @@ pub fn setup_server_tls(config: Config) -> anyhow::Result<ServerConfig> {
                 .build()
                 .context("verifier setup")?,
         )
-        .with_single_cert(vec![server_cert], key.into())
+        .with_single_cert(vec![server_cert], key)
         .context("tls config setup")
 }
 
@@ -44,7 +44,7 @@ pub fn setup_client_tls(config: Config) -> anyhow::Result<ClientConfig> {
 
     ClientConfig::builder()
         .with_root_certificates(Arc::new(roots))
-        .with_client_auth_cert(vec![client_cert], key.into())
+        .with_client_auth_cert(vec![client_cert], key)
         .context("client cert setup")
 }
 
