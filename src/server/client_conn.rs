@@ -1,25 +1,24 @@
 use crate::protocol;
+use crate::protocol::CodecError;
 use futures::{pin_mut, StreamExt};
 use std::io::ErrorKind;
 use tokio::io::AsyncRead;
 use tokio_util::codec::FramedRead;
 use tracing::info;
 
-fn unexpected_eof_is_none<V>(
-    res: Option<Result<V, std::io::Error>>,
-) -> Option<Result<V, std::io::Error>> {
+fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Result<V, CodecError>> {
     match res {
         // because of https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof
-        Some(Err(e)) if e.kind() == ErrorKind::UnexpectedEof => None,
+        Some(Err(CodecError::Io(e))) if e.kind() == ErrorKind::UnexpectedEof => None,
         res => res,
     }
 }
 
 pub(super) async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
-    let frames = FramedRead::new(stream, protocol::xml::CotCodec::new(4 * 1024));
+    let frames = FramedRead::new(stream, protocol::xml::CotLegacyCodec::new(4 * 1024));
     pin_mut!(frames);
 
-    while let Some(res) = frames.next().await {
+    while let Some(res) = unexpected_eof_is_none(frames.next().await) {
         let message = res?;
         info!("Message");
         info!("{message:#?}");

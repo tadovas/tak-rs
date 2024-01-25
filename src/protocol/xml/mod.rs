@@ -5,11 +5,11 @@ use tokio_util::codec::{Decoder, Encoder};
 
 pub const COT_LEGACY_FRAME_MARKER: &[u8] = b"</event>";
 
-pub struct CotCodec {
+pub struct CotLegacyCodec {
     buff: Vec<u8>,
 }
 
-impl CotCodec {
+impl CotLegacyCodec {
     pub fn new(buf_size: usize) -> Self {
         Self {
             buff: Vec::with_capacity(buf_size),
@@ -17,14 +17,14 @@ impl CotCodec {
     }
 }
 
-impl Decoder for CotCodec {
+impl Decoder for CotLegacyCodec {
     type Item = Message;
-    type Error = anyhow::Error;
+    type Error = super::CodecError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         Ok(if let Some(pos) = find_in(src, COT_LEGACY_FRAME_MARKER) {
             let frame = src.split_to(pos + COT_LEGACY_FRAME_MARKER.len());
-            let element = xml_parse(frame.as_ref())?;
+            let element = xml_parse(frame.as_ref()).map_err(super::CodecError::XmlParse)?;
             Some(Message::Xml(element))
         } else {
             None
@@ -32,8 +32,8 @@ impl Decoder for CotCodec {
     }
 }
 
-impl Encoder<Message> for CotCodec {
-    type Error = anyhow::Error;
+impl Encoder<Message> for CotLegacyCodec {
+    type Error = super::CodecError;
 
     fn encode(&mut self, item: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
         self.buff.clear();
@@ -66,7 +66,7 @@ mod test {
         let data = b"<event>something something</event><event>something again";
         let mut buffer = BytesMut::from(data.as_slice());
         let mut result = Vec::with_capacity(2024);
-        let mut decoder = CotCodec::new(2048);
+        let mut decoder = CotLegacyCodec::new(2048);
 
         let frame1 = decoder.decode(&mut buffer)?.expect("should be present");
         frame1.as_xml(&mut result)?;
