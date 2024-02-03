@@ -1,9 +1,10 @@
 use tak_rs::server::{server_run, Config};
 use tak_rs::tls;
+use tracing::metadata::LevelFilter;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tak_rs::tracing::init()?;
+    tak_rs::tracing::init(LevelFilter::DEBUG)?;
     server_run(Config {
         listen_port: 8089,
         tls: tls::Config {

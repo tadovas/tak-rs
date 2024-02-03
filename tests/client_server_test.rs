@@ -5,11 +5,12 @@ use tak_rs::tls;
 use tokio::io::AsyncWriteExt;
 use tokio_rustls::TlsConnector;
 use tracing::info;
+use tracing::metadata::LevelFilter;
 
 const TEST_PORT: u16 = 13000;
 #[tokio::test]
 async fn test_client_sends_message_to_server() -> anyhow::Result<()> {
-    tak_rs::tracing::init()?;
+    tak_rs::tracing::init(LevelFilter::INFO)?;
 
     let _server_task = tokio::spawn(async {
         server_run(Config {

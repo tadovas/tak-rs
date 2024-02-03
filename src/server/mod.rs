@@ -1,11 +1,13 @@
 use crate::server::client_conn::client_loop;
 use crate::tls;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use std::future::Future;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
-use tracing::{error, info, info_span, Instrument};
+use tracing::{debug, error, info, info_span, Instrument};
+use x509_parser::nom::AsBytes;
+use x509_parser::prelude::FromDer;
 
 pub mod client_conn;
 
@@ -15,14 +17,36 @@ async fn listener_loop(listener: TcpListener, tls_acceptor: TlsAcceptor) -> anyh
         let (stream, socket) = listener.accept().await?;
         info!("Connection from: {socket:?}");
         let tls_acceptor = tls_acceptor.clone();
-        let client_span = info_span!("client_conn", remote_sock = ?socket);
+        let conn_span = info_span!("client_conn", remote_sock = ?socket);
         tokio::spawn(
             check_for_error(async move {
                 let stream = tls_acceptor.accept(stream).await.context("TLS accept")?;
-                client_loop(stream).await?;
+                let (_, server_conn) = stream.get_ref();
+
+                // accept future completion means peer certificates should be filled
+                let peer_cert_chain = server_conn
+                    .peer_certificates()
+                    .ok_or_else(|| anyhow!("client cert chain expected"))?;
+                let peer_cert = peer_cert_chain
+                    .first()
+                    .ok_or_else(|| anyhow!("at least 1 client cert expected"))?;
+
+                let (_, peer_x509_cert) =
+                    x509_parser::certificate::X509Certificate::from_der(peer_cert.as_bytes())?;
+
+                let secured_conn_span = info_span!(
+                    "tls",
+                    subject = peer_x509_cert.subject().to_string(),
+                    serial = peer_x509_cert.tbs_certificate.serial.to_string()
+                );
+                debug!(
+                    parent: &secured_conn_span,
+                    "Peer certificate: {peer_x509_cert:#?}"
+                );
+                client_loop(stream).instrument(secured_conn_span).await?;
                 Ok(())
             })
-            .instrument(client_span),
+            .instrument(conn_span),
         );
     }
 }
