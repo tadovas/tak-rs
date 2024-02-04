@@ -27,4 +27,10 @@ impl Message {
         }
         Ok(())
     }
+
+    pub fn from_raw_xml(input: &str) -> Result<Message, CodecError> {
+        minidom::Element::from_reader_with_prefixes(input.as_bytes(), Some("".to_string()))
+            .map(Self::Xml)
+            .map_err(CodecError::XmlParse)
+    }
 }

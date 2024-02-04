@@ -20,9 +20,7 @@ pub(super) async fn client_loop<S: AsyncRead>(stream: S) -> anyhow::Result<()> {
 
     while let Some(res) = unexpected_eof_is_none(frames.next().await) {
         let message = res?;
-        info!("Message");
         info!("{message:#?}");
-        info!("END");
     }
     info!("Disconnected");
     Ok(())

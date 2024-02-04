@@ -1,9 +1,9 @@
-use std::sync::Arc;
+mod test_client;
+
 use std::time::Duration;
+use tak_rs::protocol::Message;
 use tak_rs::server::{server_run, Config};
 use tak_rs::tls;
-use tokio::io::AsyncWriteExt;
-use tokio_rustls::TlsConnector;
 use tracing::info;
 use tracing::metadata::LevelFilter;
 
@@ -24,23 +24,26 @@ async fn test_client_sends_message_to_server() -> anyhow::Result<()> {
         .await
     });
 
-    let tls_config = tls::setup_client_tls(tls::Config {
-        ca: "tests/certs/ca.crt".to_string(),
-        cert: "tests/certs/client_a.crt".to_string(),
-        key: "tests/certs/client_a.key".to_string(),
-    })?;
-    let tls_connector = TlsConnector::from(Arc::new(tls_config));
+    let mut client_a = test_client::TestClient::setup("client_a", "localhost", TEST_PORT).await?;
 
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    let client = tokio::net::TcpStream::connect(("localhost", TEST_PORT)).await?;
-    let mut client = tls_connector
-        .connect("localhost".try_into()?, client)
+    let mut client_b = test_client::TestClient::setup("client_b", "localhost", TEST_PORT).await?;
+
+    client_a
+        .send_raw(b"<event><abc>From client A</abc></event>")
         .await?;
 
-    client.write(b"<event><abc></abc></event>").await?;
-    client.flush().await?;
+    client_b
+        .send(Message::from_raw_xml(
+            "<event><abc>From client B</abc></event>",
+        )?)
+        .await?;
+
+    // no implementation yet
+    // let _msg = client_b.expect_message().await?;
+
+    client_a.shutdown().await?;
+    client_b.shutdown().await?;
+    info!("we done - waiting for connections to close");
     tokio::time::sleep(Duration::from_secs(1)).await;
-    client.shutdown().await?;
-    info!("we done");
     Ok(())
 }
