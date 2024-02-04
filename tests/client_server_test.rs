@@ -2,7 +2,7 @@ mod test_client;
 
 use std::time::Duration;
 use tak_rs::protocol::Message;
-use tak_rs::server::{server_run, Config};
+use tak_rs::server::{Config, Server};
 use tak_rs::tls;
 use tracing::info;
 use tracing::metadata::LevelFilter;
@@ -13,15 +13,16 @@ async fn test_client_sends_message_to_server() -> anyhow::Result<()> {
     tak_rs::tracing::init(LevelFilter::INFO)?;
 
     let _server_task = tokio::spawn(async {
-        server_run(Config {
+        let server = Server::new(Config {
             listen_port: TEST_PORT,
             tls: tls::Config {
                 ca: "tests/certs/ca.crt".to_string(),
                 cert: "tests/certs/server.crt".to_string(),
                 key: "tests/certs/server.key".to_string(),
             },
-        })
-        .await
+        })?;
+
+        server.run().await
     });
 
     let mut client_a = test_client::TestClient::setup("client_a", "localhost", TEST_PORT).await?;
