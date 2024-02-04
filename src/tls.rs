@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio_rustls::rustls::server::WebPkiClientVerifier;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore, ServerConfig};
+use x509_parser::certificate::X509Certificate;
 
 pub struct Config {
     pub ca: String,
@@ -73,4 +74,18 @@ fn read_pem(path: impl AsRef<Path>) -> anyhow::Result<Item> {
         .map_err(|e| anyhow::anyhow!("pem parse error: {e:?}"))?
         .expect("should be present");
     Ok(item)
+}
+
+pub struct Info {
+    pub common_name: String,
+    pub serial: String,
+}
+
+impl From<X509Certificate<'_>> for Info {
+    fn from(value: X509Certificate) -> Self {
+        Info {
+            common_name: value.subject().to_string(),
+            serial: value.tbs_certificate.serial.to_string(),
+        }
+    }
 }

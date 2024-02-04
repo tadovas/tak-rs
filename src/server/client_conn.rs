@@ -1,6 +1,6 @@
 use crate::protocol::xml::CotLegacyCodec;
 use crate::protocol::CodecError;
-use crate::router::CommandQueue;
+use crate::router::command::Commands;
 use futures::{pin_mut, StreamExt};
 use std::io::ErrorKind;
 use tokio::io::AsyncRead;
@@ -15,18 +15,21 @@ fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Resul
     }
 }
 
-pub(super) struct ClientConnection<T> {
+pub(super) struct ClientConnection<T, C> {
     io_stream: T,
-    _command_queue: CommandQueue,
+    _commands: C,
 }
 
-impl<T: AsyncRead> ClientConnection<T> {
-    pub(super) fn new(io_stream: T, command_queue: CommandQueue) -> Self {
+impl<T, C> ClientConnection<T, C> {
+    pub(super) fn new(io_stream: T, commands: C) -> Self {
         Self {
             io_stream,
-            _command_queue: command_queue,
+            _commands: commands,
         }
     }
+}
+
+impl<T: AsyncRead, C: Commands> ClientConnection<T, C> {
     pub(super) async fn conn_loop(self) -> anyhow::Result<()> {
         let frames = FramedRead::new(self.io_stream, CotLegacyCodec::new(4 * 1024));
         pin_mut!(frames);
@@ -60,10 +63,14 @@ mod test {
         }
     }
 
+    struct TestCommands;
+
+    impl Commands for TestCommands {}
+
     #[tokio::test]
     async fn test_client_disconnection_without_err() {
         //FIXME - need a guard against infinite loop
-        let client_conn = ClientConnection::new(UnexpectedEOFReader, CommandQueue {});
+        let client_conn = ClientConnection::new(UnexpectedEOFReader, TestCommands);
         let res = client_conn.conn_loop().await;
         assert!(res.is_ok())
     }

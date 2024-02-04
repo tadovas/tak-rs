@@ -56,7 +56,7 @@ impl Server {
             let tls_acceptor = self.tls_acceptor.clone();
             let conn_span = info_span!("client_conn", remote_sock = ?socket);
 
-            let command_queue = self.router.allocate_queue();
+            let new_registration = self.router.new_registration();
 
             tokio::spawn(
                 check_for_error(async move {
@@ -74,15 +74,14 @@ impl Server {
                     let (_, peer_x509_cert) =
                         x509_parser::certificate::X509Certificate::from_der(peer_cert.as_bytes())?;
 
-                    let secured_conn_span = info_span!(
-                        "tls",
-                        subject = peer_x509_cert.subject().to_string(),
-                        serial = peer_x509_cert.tbs_certificate.serial.to_string()
-                    );
-                    debug!(
-                        parent: &secured_conn_span,
-                        "Peer certificate: {peer_x509_cert:#?}"
-                    );
+                    debug!("Peer certificate: {peer_x509_cert:#?}");
+
+                    let peer: tls::Info = peer_x509_cert.into();
+                    let secured_conn_span =
+                        info_span!("tls", subject = peer.common_name, serial = peer.serial);
+
+                    let command_queue = new_registration.register_new_connection(peer).await?;
+
                     ClientConnection::new(stream, command_queue)
                         .conn_loop()
                         .instrument(secured_conn_span)
