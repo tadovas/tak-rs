@@ -77,14 +77,20 @@ fn read_pem(path: impl AsRef<Path>) -> anyhow::Result<Item> {
 }
 
 pub struct Info {
-    pub common_name: String,
+    pub subject: String,
+    pub common_name: Option<String>,
     pub serial: String,
 }
 
 impl From<X509Certificate<'_>> for Info {
     fn from(value: X509Certificate) -> Self {
         Info {
-            common_name: value.subject().to_string(),
+            subject: value.subject().to_string(),
+            common_name: value
+                .subject()
+                .iter_common_name()
+                .next()
+                .and_then(|cn| cn.as_str().ok().map(|v| v.to_owned())),
             serial: value.tbs_certificate.serial.to_string(),
         }
     }

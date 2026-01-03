@@ -1,3 +1,4 @@
+pub mod client;
 pub mod protocol;
 mod router;
 pub mod server;

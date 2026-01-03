@@ -1,10 +1,9 @@
 use crate::protocol::xml::CotLegacyCodec;
 use crate::protocol::CodecError;
-use crate::router::command::Commands;
 use futures::{pin_mut, StreamExt};
 use std::io::ErrorKind;
-use tokio::io::AsyncRead;
-use tokio_util::codec::FramedRead;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio_util::codec::Framed;
 use tracing::info;
 
 fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Result<V, CodecError>> {
@@ -15,30 +14,30 @@ fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Resul
     }
 }
 
-pub(super) struct ClientConnection<T, C> {
+pub struct CotConnection<T> {
     io_stream: T,
-    _commands: C,
+    connection_id: String,
 }
 
-impl<T, C> ClientConnection<T, C> {
-    pub(super) fn new(io_stream: T, commands: C) -> Self {
+impl<T> CotConnection<T> {
+    pub fn new(io_stream: T, connection_id: String) -> Self {
         Self {
             io_stream,
-            _commands: commands,
+            connection_id,
         }
     }
 }
 
-impl<T: AsyncRead, C: Commands> ClientConnection<T, C> {
-    pub(super) async fn conn_loop(self) -> anyhow::Result<()> {
-        let frames = FramedRead::new(self.io_stream, CotLegacyCodec::new(4 * 1024));
+impl<T: AsyncRead + AsyncWrite> CotConnection<T> {
+    pub async fn conn_loop(self) -> anyhow::Result<()> {
+        let frames = Framed::new(self.io_stream, CotLegacyCodec::new(4 * 1024));
         pin_mut!(frames);
 
         while let Some(res) = unexpected_eof_is_none(frames.next().await) {
             let message = res?;
             info!("{message:#?}");
         }
-        info!("Disconnected");
+        info!("{} - disconnected", self.connection_id);
         Ok(())
     }
 }
@@ -63,14 +62,31 @@ mod test {
         }
     }
 
-    struct TestCommands;
+    impl AsyncWrite for UnexpectedEOFReader {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<Result<usize, io::Error>> {
+            unimplemented!()
+        }
 
-    impl Commands for TestCommands {}
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+            unimplemented!()
+        }
+
+        fn poll_shutdown(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+        ) -> Poll<Result<(), io::Error>> {
+            unimplemented!()
+        }
+    }
 
     #[tokio::test]
     async fn test_client_disconnection_without_err() {
         //FIXME - need a guard against infinite loop
-        let client_conn = ClientConnection::new(UnexpectedEOFReader, TestCommands);
+        let client_conn = CotConnection::new(UnexpectedEOFReader, "test conn".into());
         let res = client_conn.conn_loop().await;
         assert!(res.is_ok())
     }

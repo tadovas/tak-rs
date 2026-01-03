@@ -1,5 +1,4 @@
 use crate::router::Router;
-use crate::server::client_conn::ClientConnection;
 use crate::tls;
 use anyhow::{anyhow, Context};
 use std::future::Future;
@@ -9,8 +8,6 @@ use tokio_rustls::TlsAcceptor;
 use tracing::{debug, error, info, info_span, Instrument};
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::FromDer;
-
-pub mod client_conn;
 
 async fn check_for_error(fut: impl Future<Output = anyhow::Result<()>>) {
     if let Err(err) = fut.await {
@@ -36,27 +33,29 @@ impl Server {
         Ok(Self {
             tls_acceptor,
             socket_addr: ("0.0.0.0", config.listen_port),
-            router: Router::new(),
+            router: Router::new(100),
         })
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.socket_addr).await?;
 
-        self.listener_loop(listener).await?;
+        self.handle_cot_connections(listener).await?;
 
         Ok(())
     }
 
-    async fn listener_loop(&self, listener: TcpListener) -> anyhow::Result<()> {
-        info!("Listening: {listener:?}");
+    async fn handle_cot_connections(&self, listener: TcpListener) -> anyhow::Result<()> {
+        info!(
+            "Listening for COT on: {}",
+            listener.local_addr().expect("local addr")
+        );
         loop {
             let (stream, socket) = listener.accept().await?;
             info!("Connection from: {socket:?}");
             let tls_acceptor = self.tls_acceptor.clone();
+            let router = self.router.clone();
             let conn_span = info_span!("client_conn", remote_sock = ?socket);
-
-            let new_registration = self.router.new_registration();
 
             tokio::spawn(
                 check_for_error(async move {
@@ -76,13 +75,15 @@ impl Server {
 
                     debug!("Peer certificate: {peer_x509_cert:#?}");
 
-                    let peer: tls::Info = peer_x509_cert.into();
-                    let secured_conn_span =
-                        info_span!("tls", subject = peer.common_name, serial = peer.serial);
+                    let tls_info: tls::Info = peer_x509_cert.into();
+                    let secured_conn_span = info_span!(
+                        "tls",
+                        subject = tls_info.common_name,
+                        serial = tls_info.serial
+                    );
 
-                    let command_queue = new_registration.register_new_connection(peer).await?;
-
-                    ClientConnection::new(stream, command_queue)
+                    router
+                        .new_cot_connection(stream, tls_info)?
                         .conn_loop()
                         .instrument(secured_conn_span)
                         .await?;
