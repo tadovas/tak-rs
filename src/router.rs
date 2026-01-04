@@ -1,15 +1,13 @@
+use crate::{
+    client::{self, CotConnection},
+    protocol::Message,
+    tls,
+};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
-
-use tokio::io::AsyncRead;
 use tracing::info;
-
-use crate::{
-    client::{self, CotConnection},
-    tls,
-};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -35,7 +33,7 @@ impl Router {
         }
     }
 
-    pub fn new_cot_connection<T: AsyncRead>(
+    pub fn new_cot_connection<T>(
         &self,
         stream: T,
         tls_info: tls::Info,
@@ -57,6 +55,19 @@ impl Router {
 
         connections.insert(connection_id.clone(), ());
 
-        Ok(CotConnection::new(stream, connection_id))
+        Ok(CotConnection::new(stream, connection_id, self.clone()))
+    }
+
+    pub fn cot_packet_received(
+        &self,
+        connection_id: &String,
+        message: Message,
+    ) -> RouterResult<()> {
+        info!("Conn: {connection_id} sent: ${message:#?}");
+        Ok(())
+    }
+
+    pub fn connection_dropped(&self, connection_id: &String) {
+        info!("Connection closed: {connection_id}")
     }
 }

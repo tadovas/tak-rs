@@ -1,10 +1,12 @@
-use crate::protocol::xml::CotLegacyCodec;
 use crate::protocol::CodecError;
-use futures::{pin_mut, StreamExt};
+use crate::{protocol::xml::CotLegacyCodec, router::Router};
+use futures::StreamExt;
 use std::io::ErrorKind;
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    select,
+};
 use tokio_util::codec::Framed;
-use tracing::info;
 
 fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Result<V, CodecError>> {
     match res {
@@ -17,27 +19,63 @@ fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Resul
 pub struct CotConnection<T> {
     io_stream: T,
     connection_id: String,
+    router: Router,
 }
 
 impl<T> CotConnection<T> {
-    pub fn new(io_stream: T, connection_id: String) -> Self {
+    pub fn new(io_stream: T, connection_id: String, router: Router) -> Self {
         Self {
             io_stream,
             connection_id,
+            router,
         }
     }
 }
 
+struct Defer<F>
+where
+    F: FnMut() -> (),
+{
+    f: F,
+}
+
+impl<F> Drop for Defer<F>
+where
+    F: FnMut() -> (),
+{
+    fn drop(&mut self) {
+        (self.f)()
+    }
+}
+
+fn defer<F: FnMut() -> ()>(f: F) -> Defer<F> {
+    Defer { f }
+}
+
 impl<T: AsyncRead + AsyncWrite> CotConnection<T> {
     pub async fn conn_loop(self) -> anyhow::Result<()> {
-        let frames = Framed::new(self.io_stream, CotLegacyCodec::new(4 * 1024));
-        pin_mut!(frames);
+        let router = self.router.clone();
+        let connection_id = self.connection_id.clone();
+        let _deref = defer(move || {
+            router.connection_dropped(&connection_id);
+        });
 
-        while let Some(res) = unexpected_eof_is_none(frames.next().await) {
-            let message = res?;
-            info!("{message:#?}");
+        let frames = Framed::new(self.io_stream, CotLegacyCodec::new(4 * 1024));
+        let (mut frame_writer, mut frame_stream) = frames.split();
+
+        loop {
+            select! {
+                maybe_frame_res = frame_stream.next() => {
+                    if let Some(frame_res) = unexpected_eof_is_none(maybe_frame_res) {
+                        let message = frame_res?;
+                        self.router.cot_packet_received(&self.connection_id, message)?;
+                    } else {
+                        break
+                    }
+
+                }
+            }
         }
-        info!("{} - disconnected", self.connection_id);
         Ok(())
     }
 }
@@ -86,7 +124,8 @@ mod test {
     #[tokio::test]
     async fn test_client_disconnection_without_err() {
         //FIXME - need a guard against infinite loop
-        let client_conn = CotConnection::new(UnexpectedEOFReader, "test conn".into());
+        let client_conn =
+            CotConnection::new(UnexpectedEOFReader, "test conn".into(), Router::new(1));
         let res = client_conn.conn_loop().await;
         assert!(res.is_ok())
     }
