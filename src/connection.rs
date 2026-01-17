@@ -16,13 +16,13 @@ fn unexpected_eof_is_none<V>(res: Option<Result<V, CodecError>>) -> Option<Resul
     }
 }
 
-pub struct CotConnection<T> {
+pub struct CotClientConnection<T> {
     io_stream: T,
     connection_id: String,
     router: Router,
 }
 
-impl<T> CotConnection<T> {
+impl<T> CotClientConnection<T> {
     pub fn new(io_stream: T, connection_id: String, router: Router) -> Self {
         Self {
             io_stream,
@@ -52,7 +52,7 @@ fn defer<F: FnMut() -> ()>(f: F) -> Defer<F> {
     Defer { f }
 }
 
-impl<T: AsyncRead + AsyncWrite> CotConnection<T> {
+impl<T: AsyncRead + AsyncWrite> CotClientConnection<T> {
     pub async fn conn_loop(self) -> anyhow::Result<()> {
         let router = self.router.clone();
         let connection_id = self.connection_id.clone();
@@ -125,7 +125,7 @@ mod test {
     async fn test_client_disconnection_without_err() {
         //FIXME - need a guard against infinite loop
         let client_conn =
-            CotConnection::new(UnexpectedEOFReader, "test conn".into(), Router::new(1));
+            CotClientConnection::new(UnexpectedEOFReader, "test conn".into(), Router::new(1));
         let res = client_conn.conn_loop().await;
         assert!(res.is_ok())
     }

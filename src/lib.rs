@@ -1,6 +1,7 @@
-pub mod client;
+pub mod buffered_channel;
+pub mod connection;
 pub mod protocol;
-mod router;
+pub mod router;
 pub mod server;
 pub mod tls;
 pub mod tracing;

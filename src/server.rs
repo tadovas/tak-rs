@@ -55,7 +55,7 @@ impl Server {
             info!("Connection from: {socket:?}");
             let tls_acceptor = self.tls_acceptor.clone();
             let router = self.router.clone();
-            let conn_span = info_span!("client_conn", remote_sock = ?socket);
+            let conn_span = info_span!("COT client connection", remote_sock = ?socket);
 
             tokio::spawn(
                 check_for_error(async move {

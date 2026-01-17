@@ -1,8 +1,4 @@
-use crate::{
-    client::{self, CotConnection},
-    protocol::Message,
-    tls,
-};
+use crate::{connection::CotClientConnection, protocol::Message, tls};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -37,7 +33,7 @@ impl Router {
         &self,
         stream: T,
         tls_info: tls::Info,
-    ) -> RouterResult<client::CotConnection<T>> {
+    ) -> RouterResult<CotClientConnection<T>> {
         let connection_id = {
             let cn_name = tls_info.common_name.as_deref().unwrap_or("unknown");
             let mut cn_map = self.cn_counter_map.lock().expect("cn counters locked");
@@ -55,7 +51,11 @@ impl Router {
 
         connections.insert(connection_id.clone(), ());
 
-        Ok(CotConnection::new(stream, connection_id, self.clone()))
+        Ok(CotClientConnection::new(
+            stream,
+            connection_id,
+            self.clone(),
+        ))
     }
 
     pub fn cot_packet_received(
